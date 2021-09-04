@@ -255,6 +255,8 @@ static int process_req(int conn_fd) {
     return -1;
   }
 
+  fprintf(stdout, "(server): client requested for information of %d process(es)\n", buf[0]);
+
   if (find_top_processes(conn_fd, buf)) {
     fprintf(stderr, "(server): unable to get CPU consuming processes\n");
     return -1;

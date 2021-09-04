@@ -189,6 +189,7 @@ int make_req(int socket_fd) {
     fprintf(stderr, "(client): input error, provide a number\n");
     return -1;
   }
+  fprintf(stdout, "\n");
 
   if (buf[0] < 1) {
     fprintf(stderr, "(client): request for less than 1 process is not allowed\n");
@@ -206,7 +207,8 @@ int make_req(int socket_fd) {
     fprintf(stderr, "(client): unable to receive data from server\n");
   }
   data[bytes] = '\0';
-  fprintf(stdout, "from server: %s\n", data);
+
+  fprintf(stdout, "(client): received top %d process(es) information\n", buf[0]);
   
   FILE *fptr;
   char file[64] = "data/client/";
@@ -223,6 +225,8 @@ int make_req(int socket_fd) {
     fprintf(stderr, "(server): unable to write to file\n");
     return -1;
   }
+
+  fprintf(stdout, "(client): received information written to %s\n", file);
 
   return 0;
 }
@@ -253,6 +257,8 @@ int init_client() {
     LOG(errno); // connection refused
     return errno;
   }
+
+  fprintf(stdout, "(client): connected to the server\n");
 
   if (make_req(socket_fd)) {
     fprintf(stderr, "(client): unable to make a request\n");
