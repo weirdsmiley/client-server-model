@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #define SERV_PORT 8787
-#define LOG(X) printf("(server): %s\n", strerror(X))
+#define LOG(X) printf("(client): %s\n", strerror(X))
 
 // Represent any process to be later put into the info file.
 struct proc_info_t {
@@ -59,7 +59,7 @@ char *struct2str(struct proc_info_t *arr, int n) {
   /* allocate/validate string to hold all values (+1 to null-terminate) */
   char *ptr = calloc(1, sizeof *ptr * len + 1);
   if (!ptr) {
-    fprintf(stderr, "(server): virtual memory allocation failed.\n");
+    fprintf(stderr, "(client): virtual memory allocation failed.\n");
     return NULL;
   }
 
@@ -217,12 +217,12 @@ int make_req(int socket_fd) {
   strcat(file, pid);
 
   if ((fptr = fopen(file, "w")) == NULL) {
-    fprintf(stderr, "(server): unable to open file\n");
+    fprintf(stderr, "(client): unable to open file\n");
     return -1;
   }
 
   if (fwrite(data, sizeof(char), strlen(data), fptr) < 1) {
-    fprintf(stderr, "(server): unable to write to file\n");
+    fprintf(stderr, "(client): unable to write to file\n");
     return -1;
   }
 
