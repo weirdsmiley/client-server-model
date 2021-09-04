@@ -37,6 +37,17 @@ struct proc_info_t {
   char pr_name[32];       /* Process name */
 };
 
+// Convert an integer to an array of characters but in reverse order. 
+// @returns: void
+void itoa(unsigned long n, char s[]) {
+  int i = 0;
+
+  do {
+    s[i++] = n % 10 + '0';
+  } while ((n /= 10) > 0);
+  s[i] = '\0';
+}
+
 // Flatten all the given structs into a char*, according to the offset n.
 // @returns: pointer to the flattened array, NULL on failure
 char *struct2str(struct proc_info_t *arr, int n) {
@@ -109,7 +120,7 @@ static struct proc_info_t *find_top_process(struct proc_info_t *top_proc) {
       *iter = '\0';
 
       sscanf(curr_stat_info,
-             "%d %s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu",
+             "%d %[^)] %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu",
              &curr_proc->pid, curr_proc->pr_name, &curr_proc->pr_utime,
              &curr_proc->pr_stime);
 
@@ -158,11 +169,8 @@ int send_info(int socket_fd) {
     fprintf(stderr, "(client): unable to retrieve top CPU consuming process\n");
     return -1;
   }
-  printf("This top: %s\n", top_proc);
 
   // send top process infomation to server
-  // FIXME: This is sending but not sending
-  // Probably deadlock as I am sending to that socket which is listening.
   if (send(socket_fd, top_proc, strlen(top_proc), MSG_DONTWAIT) == -1) {
     fprintf(stderr, "(client): unable to send data over to server\n");
     return -1;
@@ -182,12 +190,16 @@ int make_req(int socket_fd) {
     return -1;
   }
 
+  if (buf[0] < 1) {
+    fprintf(stderr, "(client): request for less than 1 process is not allowed\n");
+    return -1;
+  }
+
   if (write(socket_fd, buf, sizeof(int)) == -1) {
     fprintf(stderr, "(client): unable to send request\n");
     return -1;
   }
 
-  // FIXME: unable to read entire data
   int bytes = 0;
   char data[1024] = {0};
   if ((bytes = recv(socket_fd, data, 64, MSG_WAITFORONE)) == -1) {
@@ -195,9 +207,20 @@ int make_req(int socket_fd) {
   }
   data[bytes] = '\0';
   fprintf(stdout, "from server: %s\n", data);
+  
+  FILE *fptr;
+  char file[64] = "data/client/";
+  char pid[16] = {0};
+  itoa(getpid(), pid);
+  strcat(file, pid);
 
-  if (send_info(socket_fd)) {
-    fprintf(stderr, "(client): unable to send back information to server\n");
+  if ((fptr = fopen(file, "w")) == NULL) {
+    fprintf(stderr, "(server): unable to open file\n");
+    return -1;
+  }
+
+  if (fwrite(data, sizeof(char), strlen(data), fptr) < 1) {
+    fprintf(stderr, "(server): unable to write to file\n");
     return -1;
   }
 
@@ -235,6 +258,19 @@ int init_client() {
     fprintf(stderr, "(client): unable to make a request\n");
     return -1;
   }
+
+  // Sends own top process's info
+  if (send_info(socket_fd)) {
+    fprintf(stderr, "(client): unable to send back information to server\n");
+    return -1;
+  }
+
+  if (close(socket_fd) == -1) {
+    fprintf(stderr, "(client): unable to close connection\n");
+    return -1;
+  }
+
+  fprintf(stdout, "(client): closing the connection...\n");
 
   return 0;
 }

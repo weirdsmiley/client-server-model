@@ -70,6 +70,19 @@ void dump(struct proc_info_t *arr, int n) {
   }
 }
 
+// Convert an integer to an array of characters but in reverse order. 
+// Its aim is to provide unique s[] (as tid is unique) hence we don't 
+// need the reversal of characters.
+// @returns: void
+void itoa(unsigned long n, char s[]) {
+  int i = 0;
+
+  do {
+    s[i++] = n % 10 + '0';
+  } while ((n /= 10) > 0);
+  s[i] = '\0';
+}
+
 // Flatten all the given structs into a char*, according to the offset n.
 // @returns: pointer to the flattened array, NULL on failure
 char *struct2str(struct proc_info_t *arr, int n) {
@@ -111,7 +124,10 @@ static int find_top_processes(int conn_fd, int buf[]) {
   DIR *dirp;
   struct dirent *nextdir;
 
-  const char *file = "data/server/process_info.txt";
+  char file[64] = "data/server/";
+  char tid[16] = {0};
+  itoa(pthread_self(), tid);
+  strcat(file, tid);
 
   // fptr contains the file handle where computed information will be
   // dumped to send.
@@ -165,9 +181,8 @@ static int find_top_processes(int conn_fd, int buf[]) {
       }
       *iter = '\0';
 
-      // FIXME: The pointer pr_name isn't scanning input.
       sscanf(curr_stat_info,
-             "%d %s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu",
+             "%d %[^)] %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu",
              &curr_proc->pid, curr_proc->pr_name, &curr_proc->pr_utime,
              &curr_proc->pr_stime);
 
@@ -202,13 +217,6 @@ static int find_top_processes(int conn_fd, int buf[]) {
       close(stat_fd);
     }
   }
-
-  /* int ret = fwrite(&buf, sizeof(int), 1, fptr); */
-  /* const char *mystr = "hello its me server\n\0"; */
-  /* int ret = fwrite(mystr, sizeof(char), strlen(mystr), fptr); */
-  /* printf("written to file: ret {%d}\n", ret); */
-
-  dump(top_procs, buf[0]);
 
   char *data = struct2str(top_procs, buf[0]);
 
