@@ -1,5 +1,7 @@
 /build/
+/scripts/
 /data/
+/logs/
 /vgcore*
 /session.vim
 /valgrind*
