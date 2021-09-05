@@ -2,7 +2,7 @@ CFLAGS := -g -Wall -lpthread -Wformat-truncation=0
 SRV := src/server.c
 CLI := src/client.c
 
-$(shell mkdir -p build)
+$(shell mkdir -p build data/{client,server})
 
 .PHONY: build/srv
 build/srv: $(SRV)
