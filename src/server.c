@@ -70,8 +70,8 @@ void dump(struct proc_info_t *arr, int n) {
   }
 }
 
-// Convert an integer to an array of characters but in reverse order. 
-// Its aim is to provide unique s[] (as tid is unique) hence we don't 
+// Convert an integer to an array of characters but in reverse order.
+// Its aim is to provide unique s[] (as tid is unique) hence we don't
 // need the reversal of characters.
 // @returns: void
 void itoa(unsigned long n, char s[]) {
@@ -86,24 +86,22 @@ void itoa(unsigned long n, char s[]) {
 // Flatten all the given structs into a char*, according to the offset n.
 // @returns: pointer to the flattened array, NULL on failure
 char *struct2str(struct proc_info_t *arr, int n) {
-  /* get lenght of string required to hold struct values */
   size_t len = 0;
   len = snprintf(NULL, len, "%d,%s,%lu,%lu", arr->pid, arr->pr_name,
                  arr->pr_utime, arr->pr_stime);
 
-  /* allocate/validate string to hold all values (+1 to null-terminate) */
   char *ptr = calloc(1, sizeof *ptr * len + 1);
   if (!ptr) {
     fprintf(stderr, "(server): virtual memory allocation failed.\n");
     return NULL;
   }
 
-  /* write/validate struct values to apstr */
   if (snprintf(ptr, len + 1, "%d,%s,%lu,%lu", arr->pid, arr->pr_name,
                arr->pr_utime, arr->pr_stime) > len + 1) {
     fprintf(stderr, "(server): snprintf returned truncated result.\n");
     return NULL;
   }
+  ptr[len] = '\n';
 
   return ptr;
 }
@@ -218,17 +216,18 @@ static int find_top_processes(int conn_fd, int buf[]) {
     }
   }
 
-  char *data = struct2str(top_procs, buf[0]);
+  for (int i = 0; i < buf[0]; ++i) {
+    char *data = struct2str(top_procs, buf[0]);
 
-  // write to fptr
-  if (fwrite(data, sizeof(char), strlen(data), fptr) < 1) {
-    fprintf(stderr, "(server): unable to write to file\n");
-    return -1;
-  }
+    if (fwrite(data, sizeof(char), strlen(data), fptr) < 1) {
+      fprintf(stderr, "(server): unable to write to file\n");
+      return -1;
+    }
 
-  if (send(conn_fd, data, strlen(data), MSG_DONTWAIT) == -1) {
-    fprintf(stderr, "(server): unable to send file over to client");
-    return -1;
+    if (send(conn_fd, data, strlen(data), MSG_DONTWAIT) == -1) {
+      fprintf(stderr, "(server): unable to send file over to client");
+      return -1;
+    }
   }
 
   // FIXME: Something is wrong in these free() calls!
@@ -255,7 +254,9 @@ static int process_req(int conn_fd) {
     return -1;
   }
 
-  fprintf(stdout, "(server): client requested for information of %d process(es)\n", buf[0]);
+  fprintf(stdout,
+          "(server): client requested for information of %d process(es)\n",
+          buf[0]);
 
   if (find_top_processes(conn_fd, buf)) {
     fprintf(stderr, "(server): unable to get CPU consuming processes\n");
@@ -315,10 +316,8 @@ int init_server() {
   bzero(&srv_addr, socket_len);
 
   srv_addr.sin_family = AF_INET;
-  srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  srv_addr.sin_addr.s_addr = inet_addr("192.168.1.105");
   srv_addr.sin_port = htons(SERV_PORT);
-  /* srv_addr.sin_addr.s_addr = inet_addr("192.168.1.105"); */
-  /* srv_addr.sin_port = htons(SERV_PORT); */
 
   if (bind(socket_fd, (struct sockaddr *)&srv_addr, socket_len)) {
     fprintf(stderr, "(server): unable to bind socket\n");

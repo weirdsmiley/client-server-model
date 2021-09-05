@@ -37,7 +37,7 @@ struct proc_info_t {
   char pr_name[32];       /* Process name */
 };
 
-// Convert an integer to an array of characters but in reverse order. 
+// Convert an integer to an array of characters but in reverse order.
 // @returns: void
 void itoa(unsigned long n, char s[]) {
   int i = 0;
@@ -51,12 +51,10 @@ void itoa(unsigned long n, char s[]) {
 // Flatten all the given structs into a char*, according to the offset n.
 // @returns: pointer to the flattened array, NULL on failure
 char *struct2str(struct proc_info_t *arr, int n) {
-  /* get lenght of string required to hold struct values */
   size_t len = 0;
   len = snprintf(NULL, len, "%d,%s,%lu,%lu", arr->pid, arr->pr_name,
                  arr->pr_utime, arr->pr_stime);
 
-  /* allocate/validate string to hold all values (+1 to null-terminate) */
   char *ptr = calloc(1, sizeof *ptr * len + 1);
   if (!ptr) {
     fprintf(stderr, "(client): virtual memory allocation failed.\n");
@@ -68,6 +66,7 @@ char *struct2str(struct proc_info_t *arr, int n) {
     fprintf(stderr, "(client): snprintf returned truncated result.\n");
     return NULL;
   }
+  ptr[len] = '\n';
 
   return ptr;
 }
@@ -192,7 +191,8 @@ int make_req(int socket_fd) {
   fprintf(stdout, "\n");
 
   if (buf[0] < 1) {
-    fprintf(stderr, "(client): request for less than 1 process is not allowed\n");
+    fprintf(stderr,
+            "(client): request for less than 1 process is not allowed\n");
     return -1;
   }
 
@@ -208,8 +208,9 @@ int make_req(int socket_fd) {
   }
   data[bytes] = '\0';
 
-  fprintf(stdout, "(client): received top %d process(es) information\n", buf[0]);
-  
+  fprintf(stdout, "(client): received top %d process(es) information\n",
+          buf[0]);
+
   FILE *fptr;
   char file[64] = "data/client/";
   char pid[16] = {0};
@@ -233,7 +234,7 @@ int make_req(int socket_fd) {
 
 // Initializes the client socket.
 // @returns: 0 on success, errno on failure.
-int init_client() {
+int init_client(char *argv[]) {
   int socket_fd;
   struct sockaddr_in cli_addr;
   socklen_t socket_len = sizeof(cli_addr);
@@ -247,14 +248,13 @@ int init_client() {
 
   // socket parameters setup
   cli_addr.sin_family = AF_INET;
-  cli_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  cli_addr.sin_addr.s_addr = inet_addr(argv[1]);
   cli_addr.sin_port = htons(SERV_PORT);
   /* cli_addr.sin_addr.s_addr = inet_addr("192.168.1.105"); */
   /* cli_addr.sin_port = htons(SERV_PORT); */
 
   if (connect(socket_fd, (struct sockaddr *)&cli_addr, socket_len)) {
     fprintf(stderr, "(client): unable to connect to socket\n");
-    LOG(errno); // connection refused
     return errno;
   }
 
@@ -281,15 +281,15 @@ int init_client() {
   return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
   int errno, ret;
 
-  /* if (argc != 2) { */
-  /*   fprintf(stderr, "(client): require IP address to connect\n"); */
-  /*   exit(1); */
-  /* } */
+  if (argc != 2) {
+    fprintf(stderr, "(client): require IP address to connect\n");
+    exit(1);
+  }
 
-  if ((ret = init_client()) < 0) {
+  if ((ret = init_client(argv)) < 0) {
     fprintf(stderr, "(client): Error %d, unable to initialize the client\n",
             ret);
     exit(1);
