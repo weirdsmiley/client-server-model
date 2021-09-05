@@ -2,6 +2,8 @@
 /scripts/
 /data/
 /logs/
+/bench.py
+/test_concurrency.sh
 /vgcore*
 /session.vim
 /valgrind*
